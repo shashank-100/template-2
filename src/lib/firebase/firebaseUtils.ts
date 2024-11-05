@@ -11,8 +11,19 @@ import {
   doc,
   updateDoc,
   deleteDoc,
+  DocumentData,
+  QueryDocumentSnapshot,
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+
+// Define the Note type
+export interface Note {
+  id: string;
+  text: string;
+  timestamp: string;
+}
+
+export type NewNote = Omit<Note, 'id'>;
 
 // Auth functions
 export const logoutUser = () => signOut(auth);
@@ -29,14 +40,25 @@ export const signInWithGoogle = async () => {
 };
 
 // Firestore functions
-export const addDocument = (collectionName: string, data: any) =>
-  addDoc(collection(db, collectionName), data);
+export const addDocument = async (
+  collectionName: string, 
+  data: DocumentData
+): Promise<string> => {
+  try {
+    const docRef = await addDoc(collection(db, collectionName), data);
+    console.log("Document written with ID: ", docRef.id);
+    return docRef.id;
+  } catch (e) {
+    console.error("Error adding document: ", e);
+    throw e;
+  }
+};
 
-export const getDocuments = async (collectionName: string) => {
+export const getDocuments = async (collectionName: string): Promise<Note[]> => {
   const querySnapshot = await getDocs(collection(db, collectionName));
   return querySnapshot.docs.map(doc => ({
     id: doc.id,
-    ...doc.data()
+    ...(doc.data() as Omit<Note, 'id'>)
   }));
 };
 

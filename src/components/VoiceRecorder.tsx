@@ -1,58 +1,123 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useDeepgram } from '../lib/contexts/DeepgramContext';
-import { addDocument } from '../lib/firebase/firebaseUtils';
-import { motion } from 'framer-motion';
+import { useState } from 'react';
+import { useDeepgram } from '@/lib/contexts/DeepgramContext';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Mic, MicOff, Save } from 'lucide-react';
+import { addDocument } from '@/lib/firebase/firebaseUtils';
 
 export default function VoiceRecorder() {
+  const { connectToDeepgram, disconnectFromDeepgram, realtimeTranscript, connectionState } = useDeepgram();
   const [isRecording, setIsRecording] = useState(false);
-  const { connectToDeepgram, disconnectFromDeepgram, connectionState, realtimeTranscript } = useDeepgram();
+  const [isSaving, setIsSaving] = useState(false);
 
-  const handleStartRecording = async () => {
-    await connectToDeepgram();
-    setIsRecording(true);
-  };
-
-  const handleStopRecording = async () => {
-    disconnectFromDeepgram();
-    setIsRecording(false);
-    
-    // Save the note to Firebase
-    if (realtimeTranscript) {
-      await addDocument('notes', {
-        text: realtimeTranscript,
-        timestamp: new Date().toISOString(),
-      });
+  const handleToggleRecording = async () => {
+    if (!isRecording) {
+      setIsRecording(true);
+      await connectToDeepgram();
+    } else {
+      setIsRecording(false);
+      disconnectFromDeepgram();
+      if (realtimeTranscript) {
+        setIsSaving(true);
+        try {
+          await addDocument('notes', {
+            text: realtimeTranscript,
+            timestamp: new Date().toISOString(),
+          });
+        } catch (error) {
+          console.error('Error saving note:', error);
+        } finally {
+          setIsSaving(false);
+        }
+      }
     }
   };
 
   return (
-    <div className="w-full max-w-md">
+    <div className="space-y-6">
       <button
-        onClick={isRecording ? handleStopRecording : handleStartRecording}
-        className={`w-full py-2 px-4 rounded-full ${
-          isRecording ? 'bg-red-500 hover:bg-red-600' : 'bg-blue-500 hover:bg-blue-600'
-        } text-white font-bold`}
+        onClick={handleToggleRecording}
+        disabled={isSaving}
+        className={`w-full flex items-center justify-center space-x-3 px-8 py-4 rounded-full transition-all duration-300 text-lg font-semibold transform hover:scale-105 active:scale-95 ${
+          isRecording 
+            ? 'bg-red-600 hover:bg-red-700 text-white' 
+            : 'bg-cyan-600 hover:bg-cyan-700 text-white'
+        }`}
       >
-        {isRecording ? 'Stop Recording' : 'Start Recording'}
+        {isRecording ? (
+          <>
+            <MicOff className="h-6 w-6" />
+            <span>Stop Recording</span>
+          </>
+        ) : (
+          <>
+            <Mic className="h-6 w-6" />
+            <span>Start Recording</span>
+          </>
+        )}
       </button>
-      {isRecording && (
-        <div className="mt-4 p-4 bg-gray-100 rounded-lg">
+
+      <AnimatePresence mode="wait">
+        {isRecording && (
           <motion.div
-            animate={{
-              scale: [1, 1.2, 1],
-            }}
-            transition={{
-              duration: 1.5,
-              repeat: Infinity,
-              ease: "easeInOut",
-            }}
-            className="w-8 h-8 bg-blue-500 rounded-full mx-auto mb-4"
-          />
-          <p className="text-sm text-gray-600">{realtimeTranscript}</p>
-        </div>
-      )}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="p-6 bg-gray-700 rounded-2xl shadow-lg"
+          >
+            <div className="flex justify-center mb-6 space-x-2">
+              {[...Array(4)].map((_, i) => (
+                <motion.div
+                  key={i}
+                  animate={{
+                    scaleY: [1, 2, 1],
+                  }}
+                  transition={{
+                    duration: 1,
+                    repeat: Infinity,
+                    delay: i * 0.2,
+                  }}
+                  className="w-1 h-8 bg-cyan-400 rounded-full"
+                />
+              ))}
+            </div>
+            <div className="min-h-[100px] p-4 bg-gray-600 rounded-lg">
+              <p className="text-gray-100 text-lg text-center whitespace-pre-wrap">
+                {realtimeTranscript || "Listening..."}
+              </p>
+            </div>
+          </motion.div>
+        )}
+
+        {isSaving && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="p-8 bg-gray-700 rounded-2xl text-center"
+          >
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+              className="mx-auto w-12 h-12 mb-4"
+            >
+              <Save className="w-full h-full text-cyan-400" />
+            </motion.div>
+            <p className="text-gray-100 text-lg">Saving your note...</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Recording status indicator */}
+      <div className="flex justify-center items-center space-x-3">
+        <div className={`w-3 h-3 rounded-full ${
+          isRecording ? 'bg-red-500 animate-pulse' : 'bg-gray-500'
+        }`} />
+        <span className="text-gray-300">
+          {isRecording ? 'Recording in progress...' : 'Ready to record'}
+        </span>
+      </div>
     </div>
   );
 }
