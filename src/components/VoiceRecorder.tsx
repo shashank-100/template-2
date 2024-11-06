@@ -6,7 +6,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Mic, MicOff, Save } from 'lucide-react';
 import { addDocument } from '@/lib/firebase/firebaseUtils';
 
-export default function VoiceRecorder() {
+interface VoiceRecorderProps {
+  onNoteSaved: () => void;
+}
+
+export default function VoiceRecorder({ onNoteSaved }: VoiceRecorderProps) {
   const { connectToDeepgram, disconnectFromDeepgram, realtimeTranscript, connectionState } = useDeepgram();
   const [isRecording, setIsRecording] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -21,10 +25,14 @@ export default function VoiceRecorder() {
       if (realtimeTranscript) {
         setIsSaving(true);
         try {
-          await addDocument('notes', {
-            text: realtimeTranscript,
+          const noteData = {
+            text: realtimeTranscript.trim(),
             timestamp: new Date().toISOString(),
-          });
+          };
+          
+          await addDocument('notes', noteData);
+          console.log('Note saved successfully:', noteData);
+          onNoteSaved();
         } catch (error) {
           console.error('Error saving note:', error);
         } finally {

@@ -4,8 +4,15 @@ import VoiceRecorder from '@/components/VoiceRecorder';
 import NotesList from '@/components/NotesList';
 import { DeepgramContextProvider } from '@/lib/contexts/DeepgramContext';
 import { motion } from 'framer-motion';
+import { useState } from 'react';
 
 export default function Home() {
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  const handleNoteSaved = () => {
+    setRefreshTrigger(prev => prev + 1);
+  };
+
   return (
     <main className="min-h-screen bg-gray-900 p-6 md:p-12">
       <div className="max-w-5xl mx-auto space-y-12">
@@ -26,7 +33,7 @@ export default function Home() {
           className="bg-gray-800 rounded-2xl shadow-2xl overflow-hidden p-8"
         >
           <DeepgramContextProvider>
-            <VoiceRecorder />
+            <VoiceRecorder onNoteSaved={handleNoteSaved} />
           </DeepgramContextProvider>
         </motion.div>
 
@@ -36,7 +43,7 @@ export default function Home() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.4 }}
         >
-          <NotesList />
+          <NotesList key={refreshTrigger} />
         </motion.div>
       </div>
     </main>

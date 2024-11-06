@@ -54,12 +54,12 @@ export const addDocument = async (
   }
 };
 
-export const getDocuments = async (collectionName: string): Promise<Note[]> => {
+export const getDocuments = async <T>(collectionName: string): Promise<T[]> => {
   const querySnapshot = await getDocs(collection(db, collectionName));
   return querySnapshot.docs.map(doc => ({
     id: doc.id,
-    ...(doc.data() as Omit<Note, 'id'>)
-  }));
+    ...doc.data()
+  })) as T[];
 };
 
 export const updateDocument = (collectionName: string, id: string, data: any) =>

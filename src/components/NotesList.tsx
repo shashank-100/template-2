@@ -9,20 +9,22 @@ export default function NotesList() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchNotes = async () => {
-      try {
-        const fetchedNotes = await getDocuments<Note>('notes');
-        setNotes(fetchedNotes.sort((a, b) => 
-          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-        ));
-      } catch (error) {
-        console.error('Error fetching notes:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchNotes = async () => {
+    try {
+      setLoading(true);
+      const fetchedNotes = await getDocuments<Note>('notes');
+      console.log('Fetched notes:', fetchedNotes);
+      setNotes(fetchedNotes.sort((a, b) => 
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      ));
+    } catch (error) {
+      console.error('Error fetching notes:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchNotes();
   }, []);
 
@@ -38,7 +40,9 @@ export default function NotesList() {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-semibold text-gray-800">Your Voice Notes</h2>
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-semibold text-white">Your Voice Notes</h2>
+      </div>
       <motion.div 
         className="space-y-4"
         initial={{ opacity: 0 }}
@@ -50,17 +54,17 @@ export default function NotesList() {
             key={note.id}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow"
+            className="p-6 bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-shadow"
           >
-            <p className="text-gray-700 text-lg">{note.text}</p>
-            <p className="text-sm text-gray-500 mt-3">
+            <p className="text-gray-100 text-lg">{note.text}</p>
+            <p className="text-sm text-gray-400 mt-3">
               {format(new Date(note.timestamp), 'MMM d, yyyy h:mm a')}
             </p>
           </motion.div>
         ))}
         {notes.length === 0 && (
-          <div className="text-center py-12 bg-gray-50 rounded-lg">
-            <p className="text-gray-500 text-lg">
+          <div className="text-center py-12 bg-gray-800 rounded-lg">
+            <p className="text-gray-300 text-lg">
               No voice notes yet. Start recording to create one!
             </p>
           </div>
