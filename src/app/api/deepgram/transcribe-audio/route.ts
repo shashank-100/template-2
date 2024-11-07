@@ -1,34 +1,28 @@
 import { NextResponse } from "next/server";
-import { Deepgram } from "@deepgram/sdk";
+import { createClient } from "@deepgram/sdk";
 
-// Initialize Deepgram with API key
-const deepgram = new Deepgram(process.env.DEEPGRAM_API_KEY || "");
+// Create a Deepgram client
+const deepgram = createClient(process.env.DEEPGRAM_API_KEY || '');
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
     const { audio } = body;
 
-    // Convert base64 audio to buffer
+    // Convert base64 to buffer
     const audioBuffer = Buffer.from(audio, 'base64');
 
-    // Configure transcription options
-    const options = {
+    // Send to Deepgram for transcription
+    const { result } = await deepgram.listen.prerecorded.transcribeFile(audioBuffer, {
+      mimetype: 'audio/wav',
       smart_format: true,
-      model: "nova-2",
-      language: "en",
-    };
+      model: 'general',
+    });
 
-    // Send request to Deepgram for transcription
-    const response = await deepgram.transcription.preRecorded(
-      { buffer: audioBuffer, mimetype: 'audio/wav' },
-      options
-    );
+    // Extract the transcription text
+    const transcription = result.results?.channels[0]?.alternatives[0]?.transcript || '';
 
-    // Extract transcription from response
-    const transcription = response.results?.channels[0]?.alternatives[0]?.transcript || "";
-
-    return NextResponse.json({ transcription });
+    return NextResponse.json({ text: transcription });
   } catch (error) {
     console.error('Error transcribing audio:', error);
     return NextResponse.json(
