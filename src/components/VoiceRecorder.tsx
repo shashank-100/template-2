@@ -5,6 +5,7 @@ import { useDeepgram } from '@/lib/contexts/DeepgramContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mic, MicOff, Save } from 'lucide-react';
 import { addDocument } from '@/lib/firebase/firebaseUtils';
+import { useAuth } from '@/lib/hooks/useAuth';
 
 interface VoiceRecorderProps {
   onNoteSaved: () => void;
@@ -14,6 +15,7 @@ export default function VoiceRecorder({ onNoteSaved }: VoiceRecorderProps) {
   const { connectToDeepgram, disconnectFromDeepgram, realtimeTranscript, connectionState } = useDeepgram();
   const [isRecording, setIsRecording] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const { user } = useAuth();
 
   const handleToggleRecording = async () => {
     if (!isRecording) {
@@ -22,12 +24,13 @@ export default function VoiceRecorder({ onNoteSaved }: VoiceRecorderProps) {
     } else {
       setIsRecording(false);
       disconnectFromDeepgram();
-      if (realtimeTranscript) {
+      if (realtimeTranscript && user) {
         setIsSaving(true);
         try {
           const noteData = {
             text: realtimeTranscript.trim(),
             timestamp: new Date().toISOString(),
+            userId: user.uid,
           };
           
           await addDocument('notes', noteData);

@@ -4,17 +4,19 @@ import { useEffect, useState } from 'react';
 import { getDocuments, Note } from '../lib/firebase/firebaseUtils';
 import { format } from 'date-fns';
 import { motion } from 'framer-motion';
+import { useAuth } from '@/lib/hooks/useAuth';
 
 export default function NotesList() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
 
   const fetchNotes = async () => {
     try {
       setLoading(true);
       const fetchedNotes = await getDocuments<Note>('notes');
-      console.log('Fetched notes:', fetchedNotes);
-      setNotes(fetchedNotes.sort((a, b) => 
+      const userNotes = fetchedNotes.filter(note => note.userId === user?.uid);
+      setNotes(userNotes.sort((a, b) => 
         new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
       ));
     } catch (error) {
@@ -25,8 +27,10 @@ export default function NotesList() {
   };
 
   useEffect(() => {
-    fetchNotes();
-  }, []);
+    if (user) {
+      fetchNotes();
+    }
+  }, [user]);
 
   if (loading) {
     return (

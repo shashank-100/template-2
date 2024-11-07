@@ -21,6 +21,7 @@ export interface Note {
   id: string;
   text: string;
   timestamp: string;
+  userId: string;
 }
 
 export type NewNote = Omit<Note, 'id'>;
